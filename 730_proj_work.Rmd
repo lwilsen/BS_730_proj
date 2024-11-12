@@ -1,0 +1,34 @@
+---
+title: "BS_730_Project_exploration"
+author: "Luke Wilsen"
+date: "2024-11-07"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+# CDC Data
+# Source: https://data.cdc.gov/
+library(RSocrata)
+# Retrieve x records as example
+df <- read.socrata(
+  url = "https://data.cdc.gov/resource/vbim-akqf.json?$limit=10000"
+)
+# Check the data structure
+str(df)
+# Show summary of an example column
+table(df$hosp_yn, useNA = "always")
+# Hospitalization example
+df2 <- read.socrata(
+  url = "https://data.cdc.gov/resource/6jg4-xsqq.json"
+)
+```
+
+```{r}
+head(df2)
+unique(df2$agecategory_legend)
+```
+
