@@ -1,0 +1,49 @@
+---
+title: "Missing Data Exploration"
+author: "Ben Gerber"
+format: pdf
+editor: visual
+---
+
+## Load Libraries, Data, and Show Data Structure and Preliminary Missing
+
+Lots of missing data, especially underlying conditions, exposure, process, and ICU.
+
+```{r}
+library(skimr)
+library(tidyverse)
+library(RSocrata)
+library(gtsummary)
+
+df <- read.socrata(
+  url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=100000"
+)
+
+str(df)
+skim(df)
+```
+
+{{< pagebreak >}}
+
+## Convert "Missing" and "Unknown" text to NA and Recheck Missingness
+
+```{r}
+df_recode <- df |>
+  mutate(across(everything(), ~if_else(. %in% c("Unknown", "Missing", "NA"), NA_character_, .))) |>
+  mutate(hosp_yn = factor(hosp_yn, levels = c("Yes", "No")))
+
+skim(df_recode)
+```
+
+{{< pagebreak >}}
+
+## Explore Characteristics by Hospitalization (Primary Outcome) 
+
+```{r}
+df_recode |>
+  select(age_group, sex, race, ethnicity, exposure_yn, symptom_status, hosp_yn) |>
+  tbl_summary(
+    by = hosp_yn
+  )
+```
+
