@@ -14,6 +14,7 @@ library(skimr)
 library(tidyverse)
 library(RSocrata)
 library(gtsummary)
+library(brms)
 
 df <- read.socrata(
   url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=100000"
@@ -30,7 +31,7 @@ skim(df)
 ```{r}
 df_recode <- df |>
   mutate(across(everything(), ~if_else(. %in% c("Unknown", "Missing", "NA"), NA_character_, .))) |>
-  mutate(hosp_yn = factor(hosp_yn, levels = c("Yes", "No")))
+  mutate(hosp_yn = factor(hosp_yn, levels = c("No", "Yes")))
 
 skim(df_recode)
 ```
@@ -44,5 +45,34 @@ df_recode |>
   select(age_group, sex, race, ethnicity, exposure_yn, symptom_status, hosp_yn) |>
   tbl_summary(
     by = hosp_yn
-  )
+  ) |>
+  add_p()
 ```
+
+## Make an Example Bayesian Model
+
+```{r}
+mod_1 <- brm(
+  hosp_yn ~ age_group + race,
+  data = df_recode,
+  iter = 1000,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+### Results Summary
+
+```{r}
+summary(mod_1)
+```
+
+Noted increased risk of hospitalization with older age, and decreased risk with White race.
+
+### Check Posterior Distributions and Chains Mixing
+
+```{r}
+plot(mod_1)
+```
+
