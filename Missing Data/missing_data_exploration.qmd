@@ -37,7 +37,7 @@ skim(df_recode)
 
 {{< pagebreak >}}
 
-## Explore Characteristics by Hospitalization (Primary Outcome) 
+## Explore Characteristics by Hospitalization (Primary Outcome)
 
 ```{r}
 df_recode |>
@@ -46,4 +46,3 @@ df_recode |>
     by = hosp_yn
   )
 ```
-
