@@ -23,7 +23,7 @@ save(df, file = "730_data_150000_obs.RData")
 
 
 ```{r}
-head(df)
+load("/Users/lukewilsen/Desktop/School/BS_730/BS_730_proj/730_data_150000_obs.RData")
 ```
 
 # Research Question
@@ -62,6 +62,22 @@ df %>%
   geom_bar(aes(x = age_group, fill = race), position = "dodge")
 ```
 
+```{r}
+dfna = df %>% 
+  mutate(across(everything(), ~ na_if(.x, "Missing") %>% na_if("Unknown") %>% na_if("NA")))
+```
 
+## Independence of explanatory variables
 
+```{r}
+interest_cols = c("sex","race","ethnicity","hosp_yn","underlying_conditions_yn","age_group")
+
+df_interest = dfna %>% select(all_of(interest_cols)) %>% drop_na()
+
+unique(drop_na(df_interest)$race)
+
+unique(drop_na(df_interest)$age_group)
+
+table(df_interest$race, df_interest$age_group)
+```
 
