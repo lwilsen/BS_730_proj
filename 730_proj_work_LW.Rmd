@@ -13,12 +13,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(RSocrata)
 df <- read.socrata(
-  url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=150000"
+  url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=50000"
 )
-```
-
-```{r}
-save(df, file = "730_data_150000_obs.RData")
 ```
 
 ```{r}
