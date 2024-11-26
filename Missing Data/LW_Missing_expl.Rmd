@@ -1,0 +1,89 @@
+---
+title: "LW_Missing"
+author: "Luke Wilsen"
+date: "2024-11-26"
+output: html_document
+---
+
+# Notebook Idea: What to do with missing data, and why?
+
+```{r}
+load("/Users/lukewilsen/Desktop/School/BS_730/BS_730_proj/730_data_150000_obs.RData")
+df
+```
+
+# Investigating missingness
+
+```{r}
+dfna = df %>% 
+  mutate(across(everything(), ~ na_if(.x, "Missing") %>% na_if("Unknown") %>% na_if("NA")))
+```
+
+```{r}
+colSums(is.na(dfna))
+```
+
+There is no Month, State, county, and current status data missing from the dataset.
+
+```{r}
+#is.na(dfna %>% select(underlying_conditions_yn, hosp_yn, age_group))
+```
+
+
+## hosp_yn Samples per state, age group, underlying_condition_yn, symptoms_yn
+
+```{r}
+dfna %>% 
+  select(age_group, 
+        sex, 
+        race, 
+        ethnicity, 
+        exposure_yn, 
+        symptom_status, 
+        underlying_conditions_yn,
+        hosp_yn) %>% 
+  tbl_summary(by = hosp_yn)
+```
+
+```{r}
+print(c("% of rows without known hospitalization status:", as.character(sum(is.na(dfna$hosp_yn)) / sum(length(dfna$hosp_yn)))))
+```
+
+```{r}
+colnames(dfna)
+
+interest_cols = c("sex","race","ethnicity","hosp_yn","underlying_conditions_yn","age_group")
+
+for (col in interest_cols){
+  print(ggplot(dfna)+
+          geom_bar(aes(x = hosp_yn, fill = !!sym(col)), position = "dodge")
+        )
+}
+```
+
+## Methods for dealing with missing data:
+
+- https://pmc.ncbi.nlm.nih.gov/articles/PMC11101000/ 
+
+
+## Method 1: Deletion
+
+```{r}
+dfNoNa = drop_na(dfna)
+```
+
+```{r}
+for (col in interest_cols){
+  print(ggplot(dfNoNa)+
+          geom_bar(aes(x = hosp_yn, fill = !!sym(col)), position = "fill")
+        )
+}
+```
+
+## Initial results
+
+- Increased proportion of females hospitalized, compared to females not hospitalized
+- Increased proportion of Blacks hospitalized, compared to Blacks not hospitalized
+  - Decreased proportion of Whites hospitalized, compared to Whites not hospitalized
+- 0-17 yrs seems to be protective, 65+ years looks like it significantly increases risk of hospitalization
+  - 18-49 seems slightly protective
