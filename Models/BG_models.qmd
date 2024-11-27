@@ -1,0 +1,107 @@
+---
+title: "Bayesian Modeling"
+author: "Ben Gerber"
+format: pdf
+editor: visual
+---
+
+## Load Libraries, Data, and Show Data Structure and Preliminary Missing
+
+```{r}
+library(tidyverse)
+library(RSocrata)
+library(gtsummary)
+library(brms)
+
+df <- read.socrata(
+  url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=100000"
+)
+
+str(df)
+```
+
+{{< pagebreak >}}
+
+## Convert "Missing" and "Unknown" text to NA, make age ordinal
+
+```{r}
+df_recode <- df |>
+  mutate(across(everything(), ~if_else(. %in% c("Unknown", "Missing", "NA"), NA_character_, .))) |>
+  mutate(hosp_yn = factor(hosp_yn, levels = c("No", "Yes")))
+
+df_recode$age_group <- ordered(df_recode$age_group)
+```
+
+{{< pagebreak >}}
+
+## Make an Example Bayesian Model with Age and Race Only
+
+```{r}
+mod_1 <- brm(
+  hosp_yn ~ age_group + race,
+  data = df_recode,
+  iter = 1000,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+### Results Summary
+
+```{r}
+summary(mod_1)
+```
+
+Noted increased risk of hospitalization with older age, and decreased risk with White race.
+
+The ordinal age group gives contrasts for linear, quadratic and cubic (linear significant).
+
+### Check Posterior Distributions and Chains Mixing
+
+```{r}
+plot(mod_1)
+```
+
+## Make a hierarchical model with state
+
+Added more iterations given lower effect sizes.
+
+```{r}
+mod_2 <- brm(
+  hosp_yn ~ age_group + race + (1 | res_state),
+  data = df_recode,
+  iter = 2000,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+### Results summary
+
+```{r}
+summary(mod_2)
+```
+
+## Explore conditional effects of model
+
+```{r}
+conditional_effects(mod_2)
+```
+
+Age clearly increases risk, but after adjusting for age, race not so much.
+
+## Posterior predictive check
+
+```{r}
+pp_check(mod_2, type = "stat_2d")
+```
+
+## Show results by state
+
+TODO: Pending...
+
+
+
+

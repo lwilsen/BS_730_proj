@@ -49,30 +49,4 @@ df_recode |>
   add_p()
 ```
 
-## Make an Example Bayesian Model
-
-```{r}
-mod_1 <- brm(
-  hosp_yn ~ age_group + race,
-  data = df_recode,
-  iter = 1000,
-  chains = 4,
-  cores = getOption("mc.cores", 4),
-  family = bernoulli
-)
-```
-
-### Results Summary
-
-```{r}
-summary(mod_1)
-```
-
-Noted increased risk of hospitalization with older age, and decreased risk with White race.
-
-### Check Posterior Distributions and Chains Mixing
-
-```{r}
-plot(mod_1)
-```
 
