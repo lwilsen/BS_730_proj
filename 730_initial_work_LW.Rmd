@@ -67,12 +67,18 @@ dfna = df %>%
   mutate(across(everything(), ~ na_if(.x, "Missing") %>% na_if("Unknown") %>% na_if("NA")))
 ```
 
+```{r}
+dfna %>% 
+  ggplot()+
+  geom_bar(aes(x = age_group, fill = race), position = "dodge")
+```
+
 ## Independence of explanatory variables
 
 ```{r}
 interest_cols = c("sex","race","ethnicity","hosp_yn","underlying_conditions_yn","age_group")
 
-df_interest = dfna %>% select(all_of(interest_cols)) %>% drop_na()
+df_interest = dfna %>% select(all_of(interest_cols))
 
 unique(drop_na(df_interest)$race)
 
@@ -82,6 +88,60 @@ table(df_interest$race, df_interest$age_group)
 ```
 
 ```{r}
+df_interest %>% filter(!is.na(race)) %>% 
+  ggplot()+
+  geom_bar(aes(x = race))
 
+df_interest %>% filter(!is.na(age_group)) %>% 
+  ggplot()+
+  geom_bar(aes(x = age_group))
+
+df_interest %>% filter(!is.na(race) & !is.na(age_group)) %>% select(race, age_group) %>% table() %>% chisq.test()
 ```
+
+## Age and race independence (no)
+```{r}
+df_interest %>% filter(!is.na(race) & !is.na(age_group)) %>%
+  ggplot()+
+  geom_bar(aes(x = race, fill = age_group), position = 'fill')
+
+df_interest %>% filter(!is.na(race) & !is.na(age_group)) %>%
+  ggplot()+
+  geom_bar(aes(x = race, fill = age_group), position = 'dodge')
+
+df_interest %>% filter(!is.na(race) & !is.na(age_group)) %>% select(race, age_group) %>% table() %>% chisq.test()
+```
+
+## Age and sex independence (no)
+
+```{r}
+df_interest %>% filter(!is.na(age_group) & !is.na(sex)) %>% 
+  ggplot()+
+  geom_bar(aes(x = sex, fill = age_group), position = "dodge")
+
+df_interest %>% filter(!is.na(age_group) & !is.na(sex)) %>% 
+  ggplot()+
+  geom_bar(aes(x = sex, fill = age_group), position = "fill")
+
+df_interest %>% filter(!is.na(age_group) & !is.na(sex)) %>% select(sex, age_group) %>% table()
+
+df_interest %>% filter(!is.na(age_group) & !is.na(sex)) %>% select(sex, age_group) %>% table() %>% chisq.test()
+```
+
+## Race and sex independence (no)
+
+```{r}
+df_interest %>% filter(!is.na(race) & !is.na(sex)) %>% 
+  ggplot()+
+  geom_bar(aes(x = sex, fill = race), position = "dodge")
+
+df_interest %>% filter(!is.na(race) & !is.na(sex)) %>% 
+  ggplot()+
+  geom_bar(aes(x = sex, fill = race), position = "fill")
+
+df_interest %>% filter(!is.na(race) & !is.na(sex)) %>% select(race, sex) %>% table()
+
+df_interest %>% filter(!is.na(race) & !is.na(sex)) %>% select(race, sex) %>% table() %>% chisq.test()
+```
+
 
