@@ -17,15 +17,215 @@ load("/Users/lukewilsen/Desktop/School/BS_730/BS_730_proj/730_data_150000_obs.RD
 
 ```{r}
 df
+
+dfna = df %>% 
+  mutate(across(everything(), ~ na_if(.x, "Missing") %>% na_if("Unknown") %>% na_if("NA")))
+```
+
+```{r}
+logit <- function(p) log(p/(1-p))
+
+invlogit <- function(x) 1/(1+exp(-x))
 ```
 
 
-## Initial considerations/concerns
+# Initial considerations/concerns
 - Our explanatory variables are mostly (if not entirely) categorical
   - What kind of recoding scheme should we use?
+    - One-hot encoding
+    - Recode age_group to be an ordinal variable (with scores to represent distances between the groups)
+  
 - Are any of the variables we're interested in correlated?
+  - Yes (all of them are correlated/collinear)
 - What priors?
   - Should we incorporate prior information?
   - Jeffrey's prior bc logistic regression?
   
+# Recoding
+```{r}
+dfna$black = ifelse(dfna$race == "Black", 1, 0)
+dfna$white = ifelse(dfna$race == "White", 1, 0)
+dfna$asian = ifelse(dfna$race == "Asian", 1, 0)
+dfna$mult = ifelse(dfna$race == "Multiple/Other", 1, 0)
+dfna$anai = ifelse(dfna$race == "American Indian/Alaska Native", 1, 0)
+
+age_scores1 = c(8.5, 33.5, 57, 75)
+# 75 might be too low of a representation of the 65+ group, so we'll try another model with a higher value
+
+age_scores2 = c(8.5, 33.5, 57, 80)
+
+dfna <- dfna %>%
+  mutate(age_scores1 = case_when(
+    age_group == "0 - 17 years" ~ age_scores1[1],
+    age_group == "18 to 49 years" ~ age_scores1[2],
+    age_group == "50 to 64 years" ~ age_scores1[3],
+    age_group == "65+ years" ~ age_scores1[4],
+    is.na(age_group) ~ NA_real_  # Handle NA explicitly
+  ))
+
+dfna <- dfna %>%
+  mutate(age_scores2 = case_when(
+    age_group == "0 - 17 years" ~ age_scores2[1],
+    age_group == "18 to 49 years" ~ age_scores2[2],
+    age_group == "50 to 64 years" ~ age_scores2[3],
+    age_group == "65+ years" ~ age_scores2[4],
+    is.na(age_group) ~ NA_real_  # Handle NA explicitly
+  ))
+
+dfna = dfna %>% 
+  mutate(hosp_yn = case_when(
+    hosp_yn == "No" ~ 0,
+    hosp_yn == "Yes" ~ 1
+  ))
+```
+
+# Models
+## basemod
+
+Model specs:
+- Base priors
+- logist link function
+```{r results = "hide"}
+basemod <- brm(
+  hosp_yn ~ age_group + race,
+  data = dfna,
+  iter = 1500,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+### interpret
+```{r}
+summary(basemod)
+```
+
+Base group of the model: American Indians/Alaska Natives in the 0-17 years age group.
+- Get odds of hospitalization for this group
+
+Compared to 0-17 yr old American Indians/Alaska Natives, the odds of White people being hospitalized are (1 - exp(-0.67)) = 0.4882914 = 48.83% lower.
+
+Compared to 0-17 yr old American Indians/Alaska Natives, the odds of Black people being hospitalized are (1 - exp(-0.07)) = 6.76% lower.
+
+Compared to 0-17 yr old American Indians/Alaska Natives, the odds of Asian people being hospitalized are (1 - exp(-0.26)) = 22.89% lower.
+
+Compared to 0-17 yr old American Indians/Alaska Natives, the odds of Asian people being hospitalized are (1 - exp(-0.26)) = 42.88% lower.
+
+Increasing age ==> Higher odds of hospitalization
+
+```{r}
+1 - exp(-0.67)
+1 - exp(-0.07)
+1 - exp(-0.26)
+1 - exp(-0.56)
+unique(dfna$age_group)
+unique(dfna$race)
+```
+
+### mod check: basemod
+
+```{r}
+
+vars = c("Intercept","b_age_group18to49years","b_age_group50to64years","b_age_group65Pyears","b_raceAsian","b_raceBlack","b_raceWhite")
+
+vars2 = c("Intercept","b_age_group18to49years","b_age_group50to64years","b_age_group65Pyears", "b_black", "b_white", "b_asian", "b_mult", "b_anai")
+
+for (var in vars2){
+  plot(basemod, variable = var)
+}
+
+
+```
+
+Pretty good mixing of the chains, Rhat = 1 for all params, min Bulk ESS = 1572, min Tail ESS = 1588
+ - Overall I feel fairly confident that this model fits the data well.
+  - However, I want to see how changing the coding of age group affects this.
   
+## encoded1 mod
+```{r, results='hide', echo=FALSE}
+encmod1 <- brm(
+  hosp_yn ~ age_scores1 + race,
+  data = dfna,
+  iter = 1500,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+```{r}
+summary(encmod1)
+```
+
+
+```{r}
+vars = c("Intercept","b_age_group18to49years","b_age_group50to64years","b_age_group65Pyears","b_raceAsian","b_raceBlack","b_raceWhite")
+
+vars2 = c("Intercept","b_age_group18to49years","b_age_group50to64years","b_age_group65Pyears", "b_black", "b_white", "b_asian", "b_mult", "b_anai")
+
+vars3 = c("Intercept","b_age_scores1", "b_raceAsian","b_raceBlack","b_raceWhite", "b_raceMultipleDOther")
+
+for (var in vars3){
+  plot(encmod1, variable = var)
+}
+```
+
+
+## encoded2 mod
+Changed which age scoring used
+```{r, results='hide', echo=FALSE}
+encmod2 <- brm(
+  hosp_yn ~ age_scores2 + race,
+  data = dfna,
+  iter = 1500,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+```{r}
+summary(encmod2)
+```
+
+```{r}
+vars4 = c("Intercept","b_age_scores2", "b_raceAsian","b_raceBlack","b_raceWhite", "b_raceMultipleDOther")
+
+
+for (var in vars4){
+  plot(encmod2, variable = var)
+}
+```
+
+```{r}
+summary(basemod)
+summary(encmod1)
+summary(encmod2)
+```
+
+## model prob graph
+```{r}
+unique(dfna$age_group)
+```
+
+```{r}
+#pretty useless code below (I think)
+dfna = dfna %>% 
+  mutate(
+    p_encmod2 = invlogit(-4.15 + 0.4 * age_scores2 + asian * -0.28 + black * -0.07 + mult * -0.6 + white * -0.66),
+    p_encmod1 = invlogit(-4.28 + 0.5 * age_scores2 + asian * -0.26 + black * -0.06 + mult * -0.59 + white * -0.66),
+    p_basemod = invlogit(-3.54 + 0.81 * ifelse(age_group == "18 to 49 years", 1, 0) + 1.82 * ifelse(age_group == "50 to 64 years", 1, 0) + 1.82 * ifelse(age_group == "65+ years", 1, 0) + asian * -0.27 + black * -0.07 + mult * -0.57 + white * -0.67)
+  )
+
+dfna %>% select(hosp_yn, p_basemod, p_encmod1, p_encmod2) %>% 
+  drop_na() %>% 
+  mutate(bm_pred = ifelse(p_basemod > 0.5, 1, 0)) %>% 
+  summarise()
+```
+
+
+
+
+
+
