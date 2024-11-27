@@ -1,0 +1,31 @@
+---
+title: "Models"
+author: "Luke Wilsen"
+date: "2024-11-26"
+output: html_document
+---
+
+```{r}
+library(skimr)
+library(tidyverse)
+library(RSocrata)
+library(gtsummary)
+library(brms)
+
+load("/Users/lukewilsen/Desktop/School/BS_730/BS_730_proj/730_data_150000_obs.RData")
+```
+
+```{r}
+df
+```
+
+
+## Initial considerations/concerns
+- Our explanatory variables are mostly (if not entirely) categorical
+  - What kind of recoding scheme should we use?
+- Are any of the variables we're interested in correlated?
+- What priors?
+  - Should we incorporate prior information?
+  - Jeffrey's prior bc logistic regression?
+  
+  
