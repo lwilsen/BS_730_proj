@@ -12,6 +12,7 @@ library(tidyverse)
 library(RSocrata)
 library(gtsummary)
 library(brms)
+library(tidybayes)
 
 df <- read.socrata(
   url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=100000"
@@ -63,6 +64,8 @@ The ordinal age group gives contrasts for linear, quadratic and cubic (linear si
 plot(mod_1)
 ```
 
+{{< pagebreak >}}
+
 ## Make a hierarchical model with state
 
 Added more iterations given lower effect sizes.
@@ -71,7 +74,7 @@ Added more iterations given lower effect sizes.
 mod_2 <- brm(
   hosp_yn ~ age_group + race + (1 | res_state),
   data = df_recode,
-  iter = 2000,
+  iter = 2500,
   chains = 4,
   cores = getOption("mc.cores", 4),
   family = bernoulli
@@ -84,7 +87,7 @@ mod_2 <- brm(
 summary(mod_2)
 ```
 
-## Explore conditional effects of model
+### Explore conditional effects of model
 
 ```{r}
 conditional_effects(mod_2)
@@ -92,16 +95,41 @@ conditional_effects(mod_2)
 
 Age clearly increases risk, but after adjusting for age, race not so much.
 
-## Posterior predictive check
+### Posterior predictive check of model estimating probability
 
 ```{r}
-pp_check(mod_2, type = "stat_2d")
+pp_check(mod_2, type = "stat")
 ```
 
-## Show results by state
+### Show results by state
 
-TODO: Pending...
+epred draws from the expectation of the posterior predictive distribution. Is that correct?
 
+```{r}
+# Get observed hospitalization proportions by state (complete cases)
+obs_hosp <- df_recode |>
+  select(age_group, race, res_state, hosp_yn) |>
+  na.omit() |>
+  reframe(prop = sum(hosp_yn == "Yes") / n(), .by = "res_state")
 
+# Show a plot by state, with predictions and observed values
+df_recode |>
+  data_grid(res_state, age_group, race) |>
+  add_epred_draws(mod_2, allow_new_levels = TRUE) |>
+  ggplot(aes(x = .epred, y = res_state)) +
+    stat_pointinterval() +
+    scale_y_discrete(limits = rev) +
+    geom_point(data = obs_hosp, aes(x = prop, y = res_state), color = "green")
+```
 
+### Show a state with high predicted value (Arkansas)
+
+```{r}
+df_recode |>
+  select(age_group, race, res_state, hosp_yn) |>
+  filter(res_state == "AR") |>
+  na.omit()
+```
+
+There were <20 cases with complete variables, and most were hospitalized.
 
