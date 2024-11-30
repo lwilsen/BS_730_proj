@@ -131,7 +131,7 @@ vars = c("Intercept","b_age_group18to49years","b_age_group50to64years","b_age_gr
 
 vars2 = c("Intercept","b_age_group18to49years","b_age_group50to64years","b_age_group65Pyears", "b_black", "b_white", "b_asian", "b_mult", "b_anai")
 
-for (var in vars2){
+for (var in vars){
   plot(basemod, variable = var)
 }
 
@@ -158,7 +158,7 @@ encmod1 <- brm(
 summary(encmod1)
 ```
 
-
+### mod check
 ```{r}
 vars = c("Intercept","b_age_group18to49years","b_age_group50to64years","b_age_group65Pyears","b_raceAsian","b_raceBlack","b_raceWhite")
 
@@ -170,6 +170,13 @@ for (var in vars3){
   plot(encmod1, variable = var)
 }
 ```
+
+```{r}
+pp_check(encmod1)
+```
+
+
+
 
 
 ## encoded2 mod
@@ -203,6 +210,14 @@ summary(basemod)
 summary(encmod1)
 summary(encmod2)
 ```
+
+
+
+
+
+
+
+
 
 ## model prob graph
 ```{r}
