@@ -14,6 +14,12 @@ library(gtsummary)
 library(brms)
 library(tidybayes)
 library(modelr)
+<<<<<<< HEAD
+=======
+library(mice)
+library(posterior)
+library(usmap)
+>>>>>>> f4a720574d2758316bcad673237d5231a2b14432
 
 df <- read.socrata(
   url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=100000"
@@ -114,6 +120,10 @@ obs_hosp <- df_recode |>
   na.omit() |>
   reframe(prop = sum(hosp_yn == "Yes") / n(), .by = "res_state")
 
+obs_y_mean <- df_recode |>
+  reframe(mean = mean(hosp_yn == "Yes", na.rm = TRUE)) |>
+  pull(mean)
+
 # Show a plot by state, with predictions and observed values
 df_recode |>
   data_grid(res_state, age_group, race) |>
@@ -121,8 +131,11 @@ df_recode |>
   ggplot(aes(x = .epred, y = res_state)) +
     stat_pointinterval() +
     scale_y_discrete(limits = rev) +
-    geom_point(data = obs_hosp, aes(x = prop, y = res_state), color = "green")
+    geom_point(data = obs_hosp, aes(x = prop, y = res_state), color = "green") +
+    geom_vline(aes(xintercept = obs_y_mean), color = "green")
 ```
+
+Vertical line represents the overall mean across all states (with missing removed).
 
 ### Show a state with high predicted value (Arkansas)
 
@@ -135,4 +148,113 @@ df_recode |>
          )
 ```
 
+<<<<<<< HEAD
 There were \<20 cases with complete variables, and most were hospitalized.
+=======
+There were <20 cases with complete variables, and most were hospitalized.
+
+## Consider Second Approach for Missing Data
+
+Using mice supports multiple imputation before model fitting.
+
+With `brm_multiple` one can run the same brms model on multiple datasets and then combine the results into one fitted model object. 
+
+Reference (vignette): https://cran.r-project.org/web/packages/brms/vignettes/brms_missings.html
+
+```{r}
+
+# First select columns we'll need for our formula (only)
+df_selected <- df_recode |>
+  select(hosp_yn, age_group, race, res_state)
+
+# Do imputation first before modeling
+imp <- mice(
+  data = df_selected, 
+  m = 5                    # Number of sets, default is 5, may need more, but computationally burdensome
+)
+
+# Now model with brm_multiple
+mod_3 <- brm_multiple(
+  hosp_yn ~ age_group + race + (1 | res_state),
+  data = imp,
+  iter = 1000,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+### Summary
+
+```{r}
+summary(mod_3)
+```
+
+### Plot
+
+```{r}
+plot(mod_3)
+```
+
+The results are not very good, with high Rhat and low ESS.
+
+Apparently, for models based on multiple imputed data sets, one can get false positives. Chains of different sub-models may not overlay each other exactly, since there were fitted to different data. 
+
+### Separate Model Check for Convergence
+
+```{r}
+draws <- as_draws_array(mod_3)
+
+nc <- nchains(mod_3) / 5
+
+draws_per_dat <- lapply(1:5, 
+  \(i) subset_draws(draws, chain = ((i-1)*nc+1):(i*nc))
+)
+
+lapply(draws_per_dat, summarise_draws, default_convergence_measures())
+```
+
+These results are not perfect but better.
+
+## Map Demonstration
+
+```{r}
+
+# Using model 2 for this, but can modify later
+map_df <- df_recode |>
+  data_grid(res_state, age_group, race) |>
+  add_epred_draws(mod_2, allow_new_levels = TRUE) |>
+  ungroup() |>
+  reframe(pct = mean(.epred) * 100, .by = res_state)
+
+# Change name for merging easily
+map_data <- us_map() |>
+  rename(res_state = "abbr")
+
+# Merge model data with map data
+merged_data <- left_join(map_data, map_df, by = "res_state")
+
+# Make a map
+ggplot() +
+  geom_sf(data = merged_data,
+          aes(fill = pct),
+          color = "black",
+          linewidth = 0.2) +
+  theme_classic() + 
+  scale_fill_gradient(low = "lightblue", 
+                      high = "darkblue", 
+                      name = "Percent Hospitalized") +
+  labs(title = "Percent Hospitalized by State") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# Rank by number of hospitalizations in complete cases by state
+df_recode |>
+  select(hosp_yn, res_state) |>
+  na.omit() |>
+  reframe(pct = sum(hosp_yn == "Yes", na.rm = TRUE) / n(), n = n(), .by = res_state) |>
+  arrange(n)
+```
+
+The data from states with low numbers (after missing removed) explains high percentages.
+
+>>>>>>> f4a720574d2758316bcad673237d5231a2b14432
