@@ -13,6 +13,7 @@ library(RSocrata)
 library(gtsummary)
 library(brms)
 library(tidybayes)
+library(modelr)
 
 df <- read.socrata(
   url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=100000"
@@ -31,6 +32,7 @@ df_recode <- df |>
   mutate(hosp_yn = factor(hosp_yn, levels = c("No", "Yes")))
 
 df_recode$age_group <- ordered(df_recode$age_group)
+
 ```
 
 {{< pagebreak >}}
@@ -127,9 +129,10 @@ df_recode |>
 ```{r}
 df_recode |>
   select(age_group, race, res_state, hosp_yn) |>
-  filter(res_state == "AR") |>
-  na.omit()
+  filter(res_state == "AR", 
+         is.na(hosp_yn) == FALSE, 
+         (is.na(age_group) == FALSE | is.na(race) == FALSE)
+         )
 ```
 
-There were <20 cases with complete variables, and most were hospitalized.
-
+There were \<20 cases with complete variables, and most were hospitalized.

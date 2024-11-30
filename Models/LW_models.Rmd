@@ -11,6 +11,9 @@ library(tidyverse)
 library(RSocrata)
 library(gtsummary)
 library(brms)
+library(modelr)
+library(bayesplot)
+library(rstanarm)
 
 load("/Users/lukewilsen/Desktop/School/BS_730/BS_730_proj/730_data_150000_obs.RData")
 ```
@@ -134,14 +137,20 @@ vars2 = c("Intercept","b_age_group18to49years","b_age_group50to64years","b_age_g
 for (var in vars){
   plot(basemod, variable = var)
 }
-
-
 ```
 
 Pretty good mixing of the chains, Rhat = 1 for all params, min Bulk ESS = 1572, min Tail ESS = 1588
  - Overall I feel fairly confident that this model fits the data well.
   - However, I want to see how changing the coding of age group affects this.
   
+  
+### Post pred check
+
+```{r}
+pp_check(basemod, type = "stat")
+
+```
+
 ## encoded1 mod
 ```{r, results='hide', echo=FALSE}
 encmod1 <- brm(
@@ -172,7 +181,8 @@ for (var in vars3){
 ```
 
 ```{r}
-pp_check(encmod1)
+pp_check(encmod1, type = "stat")
+conditional_effects(encmod1)
 ```
 
 
@@ -206,39 +216,83 @@ for (var in vars4){
 ```
 
 ```{r}
-summary(basemod)
-summary(encmod1)
-summary(encmod2)
+pp_check(encmod2, type = "stat")
+conditional_effects(encmod2)
 ```
 
-
-
-
-
-
-
-
-
-## model prob graph
-```{r}
-unique(dfna$age_group)
-```
+## basemod hierarchical
 
 ```{r}
-#pretty useless code below (I think)
-dfna = dfna %>% 
-  mutate(
-    p_encmod2 = invlogit(-4.15 + 0.4 * age_scores2 + asian * -0.28 + black * -0.07 + mult * -0.6 + white * -0.66),
-    p_encmod1 = invlogit(-4.28 + 0.5 * age_scores2 + asian * -0.26 + black * -0.06 + mult * -0.59 + white * -0.66),
-    p_basemod = invlogit(-3.54 + 0.81 * ifelse(age_group == "18 to 49 years", 1, 0) + 1.82 * ifelse(age_group == "50 to 64 years", 1, 0) + 1.82 * ifelse(age_group == "65+ years", 1, 0) + asian * -0.27 + black * -0.07 + mult * -0.57 + white * -0.67)
-  )
-
-dfna %>% select(hosp_yn, p_basemod, p_encmod1, p_encmod2) %>% 
-  drop_na() %>% 
-  mutate(bm_pred = ifelse(p_basemod > 0.5, 1, 0)) %>% 
-  summarise()
+select_df = dfna %>% select(age_group, race, res_state, hosp_yn) %>% drop_na()
 ```
 
+
+```{r}
+bmheirarchical <- brm(
+  hosp_yn ~ age_group + race + (1 | res_state),
+  data = select_df,
+  iter = 2500,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+```{r}
+summary(bmheirarchical)
+```
+
+### Model checking
+```{r}
+pp_check(bmheirarchical, type = "stat")
+conditional_effects(encmod1)
+```
+
+```{r}
+obs_hosp <- dfna |>
+  select(age_group, race, res_state, hosp_yn) |>
+  na.omit() |>
+  reframe(prop = sum(hosp_yn == 1) / n(), .by = "res_state")
+
+# Show a plot by state, with predictions and observed values
+dfna |>
+  data_grid(res_state, age_group, race) |>
+  add_epred_draws(bmheirarchical, allow_new_levels = TRUE) |>
+  ggplot(aes(x = .epred, y = res_state)) +
+    stat_pointinterval() +
+    scale_y_discrete(limits = rev) +
+    geom_point(data = obs_hosp, aes(x = prop, y = res_state), color = "green")+
+  labs(title = "Prediction interval for proportion hospitalized vs observed proportion")
+```
+
+
+## encmod2 hierarchical
+```{r}
+encmod2heirarchical <- brm(
+  hosp_yn ~ age_scores2 + race + (1 | res_state),
+  data = dfna,
+  iter = 2500,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+```{r}
+summary(encmod2heirarchical)
+```
+
+### Model checking
+```{r}
+dfna |>
+  data_grid(res_state, age_scores2, race) |>
+  add_epred_draws(encmod2heirarchical, allow_new_levels = TRUE) |>
+  ggplot(aes(x = .epred, y = res_state)) +
+    stat_pointinterval() +
+    scale_y_discrete(limits = rev) +
+    geom_point(data = obs_hosp, aes(x = prop, y = res_state), color = "green")+
+  labs(title = "Prediction interval for proportion hospitalized vs observed proportion")
+```
 
 
 
