@@ -82,6 +82,10 @@ dfna = dfna %>%
   ))
 ```
 
+```{r}
+select_df = dfna %>% select(age_group, race, res_state, hosp_yn) %>% drop_na()
+```
+
 # Models
 ## basemod
 
@@ -148,7 +152,50 @@ Pretty good mixing of the chains, Rhat = 1 for all params, min Bulk ESS = 1572, 
 
 ```{r}
 pp_check(basemod, type = "stat")
+```
 
+#### State by state post pred check
+```{r}
+select_i_1 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(1,5)]))
+select_i_2 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(6,10)]))
+select_i_3 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(11,15)]))
+select_i_4 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(16,20)]))
+select_i_5 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(21,25)]))
+select_i_6 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(26,30)]))
+select_i_7 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(31,35)]))
+select_i_8 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(36,40)]))
+select_i_9 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(41,45)]))
+select_i_10 <- which(is.element(select_df$res_state,
+                               unique(select_df$res_state)[seq(46,48)]))
+
+ynew_bmod = posterior_predict(basemod)
+
+color_scheme_set("blue")
+ppc_group_bmod = function(select_i){
+  return(ppc_stat_grouped(select_df$hosp_yn[select_i], yrep = ynew_bmod[, select_i],
+                 group = select_df$res_state[select_i], 
+                 stat = "mean") + theme_classic())
+}
+
+ppc_group_bmod(select_i_1)
+ppc_group_bmod(select_i_2)
+ppc_group_bmod(select_i_3)
+ppc_group_bmod(select_i_4)
+ppc_group_bmod(select_i_5)
+ppc_group_bmod(select_i_6)
+ppc_group_bmod(select_i_7)
+ppc_group_bmod(select_i_8)
+ppc_group_bmod(select_i_9)
+ppc_group_bmod(select_i_10)
 ```
 
 ## encoded1 mod
@@ -222,9 +269,7 @@ conditional_effects(encmod2)
 
 ## basemod hierarchical
 
-```{r}
-select_df = dfna %>% select(age_group, race, res_state, hosp_yn) %>% drop_na()
-```
+
 
 
 ```{r}
@@ -337,7 +382,6 @@ ppc_group(select_i_7)
 ppc_group(select_i_8)
 ppc_group(select_i_9)
 ppc_group(select_i_10)
-
 ```
 
 
