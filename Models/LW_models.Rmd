@@ -334,7 +334,7 @@ summary(bmheirarchical)
 ### Model checking
 ```{r}
 pp_check(bmheirarchical, type = "stat")
-conditional_effects(encmod1)
+conditional_effects(bmheirarchical)
 ```
 
 ```{r}
@@ -451,6 +451,9 @@ ppc_group(select_i_9)
 ppc_group(select_i_10)
 ```
 
+```{r}
+conditional_effects(encmod2heirarchical)
+```
 
 
 

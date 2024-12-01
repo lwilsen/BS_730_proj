@@ -14,13 +14,13 @@ library(gtsummary)
 library(brms)
 library(tidybayes)
 library(modelr)
-<<<<<<< HEAD
-=======
 library(mice)
 library(posterior)
 library(usmap)
->>>>>>> f4a720574d2758316bcad673237d5231a2b14432
+```
 
+
+```{r}
 df <- read.socrata(
   url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=100000"
 )
