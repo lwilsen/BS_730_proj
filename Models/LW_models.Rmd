@@ -232,6 +232,28 @@ pp_check(encmod1, type = "stat")
 conditional_effects(encmod1)
 ```
 
+#### PPCheck
+```{r}
+ynew_si_enc1 = posterior_predict(encmod1)
+
+color_scheme_set("blue")
+ppc_group = function(select_i){
+  return(ppc_stat_grouped(select_df$hosp_yn[select_i], yrep = ynew_si_enc1[, select_i],
+                 group = select_df$res_state[select_i], 
+                 stat = "mean") + theme_classic())
+}
+
+ppc_group(select_i_1)
+ppc_group(select_i_2)
+ppc_group(select_i_3)
+ppc_group(select_i_4)
+ppc_group(select_i_5)
+ppc_group(select_i_6)
+ppc_group(select_i_7)
+ppc_group(select_i_8)
+ppc_group(select_i_9)
+ppc_group(select_i_10)
+```
 
 
 
@@ -253,6 +275,7 @@ encmod2 <- brm(
 summary(encmod2)
 ```
 
+### Mod check
 ```{r}
 vars4 = c("Intercept","b_age_scores2", "b_raceAsian","b_raceBlack","b_raceWhite", "b_raceMultipleDOther")
 
@@ -260,17 +283,38 @@ vars4 = c("Intercept","b_age_scores2", "b_raceAsian","b_raceBlack","b_raceWhite"
 for (var in vars4){
   plot(encmod2, variable = var)
 }
-```
+conditional_effects(encmod2)
 
+```
+#### PPCheck
 ```{r}
 pp_check(encmod2, type = "stat")
-conditional_effects(encmod2)
+```
+
+
+```{r}
+ynew_si_enc2 = posterior_predict(encmod2)
+
+color_scheme_set("blue")
+ppc_group = function(select_i){
+  return(ppc_stat_grouped(select_df$hosp_yn[select_i], yrep = ynew_si_enc2[, select_i],
+                 group = select_df$res_state[select_i], 
+                 stat = "mean") + theme_classic())
+}
+
+ppc_group(select_i_1)
+ppc_group(select_i_2)
+ppc_group(select_i_3)
+ppc_group(select_i_4)
+ppc_group(select_i_5)
+ppc_group(select_i_6)
+ppc_group(select_i_7)
+ppc_group(select_i_8)
+ppc_group(select_i_9)
+ppc_group(select_i_10)
 ```
 
 ## basemod hierarchical
-
-
-
 
 ```{r}
 bmheirarchical <- brm(
@@ -308,6 +352,29 @@ dfna |>
     scale_y_discrete(limits = rev) +
     geom_point(data = obs_hosp, aes(x = prop, y = res_state), color = "green")+
   labs(title = "Prediction interval for proportion hospitalized vs observed proportion")
+```
+
+```{r}
+
+ynew_si_bmh = posterior_predict(bmheirarchical)
+
+color_scheme_set("blue")
+ppc_group = function(select_i){
+  return(ppc_stat_grouped(select_df$hosp_yn[select_i], yrep = ynew_si_bmh[, select_i],
+                 group = select_df$res_state[select_i], 
+                 stat = "mean") + theme_classic())
+}
+
+ppc_group(select_i_1)
+ppc_group(select_i_2)
+ppc_group(select_i_3)
+ppc_group(select_i_4)
+ppc_group(select_i_5)
+ppc_group(select_i_6)
+ppc_group(select_i_7)
+ppc_group(select_i_8)
+ppc_group(select_i_9)
+ppc_group(select_i_10)
 ```
 
 
