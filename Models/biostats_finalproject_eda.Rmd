@@ -1,0 +1,283 @@
+---
+title: "Biostats Project EDA"
+author: "Alexander Ruse"
+date: "November 26, 2024"
+output: html_document
+---
+
+```{r}
+library(tidyverse)
+library(RSocrata)
+df <- read.socrata(
+  url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=50000"
+)
+```
+
+```{r}
+head(df)
+```
+
+
+Creating a crosstabs for 
+```{r}
+# Load required libraries
+library(tidyverse)
+
+# Assuming your dataset is called `df`, create crosstabs for all pairs of variables
+variables <- c("hosp_yn", "symptom_status", "exposure_yn", "ethnicity", "age_group", "race", "sex")
+
+# Generate crosstabs using base R's table()
+for (i in 1:(length(variables) - 1)) {
+  for (j in (i + 1):length(variables)) {
+    var1 <- variables[i]
+    var2 <- variables[j]
+    cat("\nCrosstab of", var1, "and", var2, ":\n")
+    print(table(df[[var1]], df[[var2]], useNA = "ifany"))
+  }
+}
+
+
+```
+Summary of results: The "0 - 17 years" group has a higher count in Missing and Unknown, suggesting incomplete data for this group. The Yes row has relatively low counts, indicating fewer individuals were hospitalized compared to No or Unknown. Hospitalization likelihood increases with age, a trend consistent with many health outcomes. For "0 - 17 years," 5594 entries are Missing and 3047 are Unknown. Incomplete data might bias the results or reduce the reliability of conclusions for these groups.
+ 
+
+Interpretation of results: 
+hosp_yn (Hospitalization Outcome) strongly varies with age_group, symptom_status, and race.
+Other factors like ethnicity and exposure_yn may have additional effects and missing data (e.g., NA, Unknown) is prevalent and needs careful handling.
+
+Significant Patterns:
+symptom_status x exposure_yn: Symptomatic individuals show higher hospitalization likelihood in combination with exposure.
+age_group x race: Older age groups exhibit variable hospitalization patterns across racial categories.
+ethnicity x race: Ethnic background interacts with race categories in influencing outcomes.
+sex x race: Sex disparities are evident across races
+
+Potential Interaction Terms:
+Based on the crosstabs, we are considering pursuing the following interaction terms
+
+1. age_group x symptom_status
+Why: Age affects the likelihood of hospitalization, but this effect may differ depending on whether an individual is symptomatic or asymptomatic.
+Example: Older symptomatic individuals may have a much higher risk of hospitalization compared to younger symptomatic individuals.
+
+2. age_group x race
+Why: Racial disparities in health outcomes often vary across age groups. Older individuals in certain racial categories might have higher hospitalization risks.
+Example: Interaction between age group and race could highlight compounded vulnerabilities.
+
+3. age_group x ethnicity
+Why: Ethnicity impacts health outcomes, but the degree of impact may vary by age.
+Example: Hospitalization differences in Hispanic versus Non-Hispanic populations across age groups.
+
+4. symptom_status x exposure_yn
+Why: Exposure and symptom status are closely related to hospitalization risk.
+Example: Symptomatic individuals with known exposures likely have a higher probability of hospitalization.
+
+5. race x ethnicity
+Why: Ethnic background and race jointly contribute to disparities in health outcomes.
+Example: Certain racial groups within Hispanic populations may have distinct hospitalization patterns.
+
+6. sex x race
+Why: Gender differences in hospitalization outcomes can vary by race.
+Example: Female versus male hospitalization likelihood might differ across racial groups.
+
+7. age_group x sex
+Why: Hospitalization differences between sexes could vary with age.
+Example: Older women might have different risk profiles compared to older men.
+
+Chi-squared testing done to illustrate interaction terms
+```{r}
+chisq.test(table(df$hosp_yn, df$age_group))
+
+```
+The result of the Chi-squared test indicates that there is a statistically significant association between hosp_yn (hospitalization outcome) and age_group as the p-value is extremely small and considered well below the standard level of significance (0.05)
+
+```{r}
+ggplot(df, aes(x = age_group, fill = hosp_yn)) +
+  geom_bar(position = "fill") +
+  labs(y = "Proportion", title = "Hospitalization Outcomes by Age Group")
+
+```
+
+now let's try different chi-squared tests from our data to see which interaction terms we can find:
+```{r}
+chisq.test(table(df$age_group, df$sex))
+
+```
+
+```{r}
+chisq.test(table(df$race, df$ethnicity))
+```
+
+```{r}
+df_recode <- df |>
+  mutate(across(everything(), ~if_else(. %in% c("Unknown", "Missing", "NA"), NA_character_, .))) |>
+  mutate(hosp_yn = factor(hosp_yn, levels = c("No", "Yes")))
+
+df_recode$age_group <- ordered(df_recode$age_group)
+```
+
+```{r}
+df_recode
+```
+
+```{r}
+library(brms)
+```
+
+
+```{r}
+mod_1 <- brm(
+  hosp_yn ~ age_group + race,
+  data = df_recode,
+  iter = 1000,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+```{r}
+summary(mod_1)
+```
+
+
+```{r}
+library(tidyverse)
+library(tidybayes)
+library(posterior)
+library(tidybayes)
+library(bayesplot) 
+```
+
+```{r}
+pp_check(mod_1, type = "stat", bins = 30)
+```
+
+```{r}
+mod_2 <- brm(
+  hosp_yn ~ age_group + race + (1 | res_state),
+  data = df_recode,
+  iter = 2500,
+  chains = 4,
+  cores = getOption("mc.cores", 4),
+  family = bernoulli
+)
+```
+
+```{r}
+summary(mod_2)
+```
+
+```{r}
+library(ggplot2)
+library(tidyverse)
+library(tidybayes)
+library(modelr)
+library(mice)
+library(posterior)
+library(usmap)
+library(brms)
+library(bayesplot)
+library(loo)
+```
+
+```{r}
+conditional_effects(mod_2)
+```
+
+```{r}
+conditional_effects(mod_2, ndraws = 500)
+```
+
+For the Hospitalization Probability by Race plot:
+The plot shows the estimated hospitalization probability by race with 95% credible intervals.Differences between racial groups are small, with groups like Black and Multiple/Other showing slightly higher probabilities. Overlapping credible intervals suggest that these differences may not be statistically significant.Racial disparities might be influenced by other factors such as socioeconomic status or healthcare access.
+
+For the Hospitalization Proabbility by Age-Group Plot
+The plot shows a clear increase in hospitalization probability with age.
+The 65+ years group has the highest probability, while the 0--17 years group has the lowest.
+Minimal overlap in credible intervals between age groups indicates statistically significant differences.
+Age is a strong predictor of hospitalization risk and aligns with known trends in COVID-19 outcomes.
+
+Effects are subtle, and further analysis with interaction terms race times age may uncover stronger relationships.
+A robust predictor, emphasizing the need for targeted interventions for older populations.
+
+
+```{r}
+pp_check(mod_2, type = "stat")
+```
+The light blue histogram represents the distribution of the summary statistic (in this case, the mean) calculated from replicated data T(y) simulated from the posterior predictive distribution. These simulations show what the model predicts the data could look like, given the posterior distribution of the parameters. The dark blue line represents the observed summary statistic T(y), calculated from the actual data. In this plot, the observed mean T(y) is located near the center of the posterior predictive distribution. This suggests that the model does a good job of capturing the observed data.
+
+```{r}
+loo_model <- loo(mod_2)
+```
+
+```{r}
+print(loo_model)
+```
+
+All Paerto k estimates are considered good as k<0.7
+MCSE of elpd_loo is 0.1
+elpd_loo is a metric that evaluates the model's predictive accuracy.MCSE quantifies the variability in the estimation of elpd_loo aused by the Monte Carlo approximation. Smaller MCSE values indicate more precise estimates of elpd_loo, confiriming that elpd_loo is reliable and not overly influenced by the Monte Carlo sampling process.
+However, if we want to compare multiple models, we need to ensure that the difference in their elpd_loo values is greater than the combined MCSEs to confirm that the differences are meaningful.
+
+```{r}
+# Get observed hospitalization proportions by state (complete cases)
+obs_hosp <- df_recode |>
+  select(age_group, race, res_state, hosp_yn) |>
+  na.omit() |>
+  reframe(prop = sum(hosp_yn == "Yes") / n(), .by = "res_state")
+
+obs_y_mean <- df_recode |>
+  reframe(mean = mean(hosp_yn == "Yes", na.rm = TRUE)) |>
+  pull(mean)
+
+# Show a plot by state, with predictions and observed values
+df_recode |>
+  data_grid(res_state, age_group, race) |>
+  add_epred_draws(mod_2, allow_new_levels = TRUE) |>
+  ggplot(aes(x = .epred, y = res_state)) +
+    stat_pointinterval() +
+    scale_y_discrete(limits = rev) +
+    geom_point(data = obs_hosp, aes(x = prop, y = res_state), color = "green") +
+    geom_vline(aes(xintercept = obs_y_mean), color = "green")
+```
+
+
+
+```{r}
+prior <- c(
+  prior(normal(0, 2), class = "b"),
+  prior(normal(0, 5), class = "Intercept"),
+  prior(student_t(3, 0, 2.5), class = "sd")
+)
+
+mod <- brm(
+  hosp_yn ~ (1 | res_state) + age_group + race + sex,
+  data = df_recode,
+  family = bernoulli(link = "logit"),
+  prior = prior,
+  chains = 4,
+  iter = 2000,
+  cores = 4
+)
+
+```
+Justification of different prior use:
+For the prior of class b aka the regression coefficients in the model, I chose the normal distribution with a mean of 0 and a standard deviation of 2 to reflect the uncertainity in the model. The mean 0 means that before observing data we expect a log-odds ratio of 0 impling no change in odds of hospitalization. I chose the normal distrubtion for the regression coefficients as most predictors likely have small or moderate effects but could occasionally have larger one. 
+
+For the prior of class intercept aka the baseline log-odds of hospitalization when all predictors are at their reference levels (e.g., baseline age group, race, etc.).The mean of 0 implies that, a priori, the baseline odds of hospitalization are close to 50% (log-odds of 0 corresponds to a probability of 0.5. The standard deviation of 5 is wider than for the fixed effects because the intercept often varies more widely than individual predictors, particularly when the baseline hospitalization probability could be very low or high.
+
+For the prior of the standard deviation, we used the Student’s t prior with 3 degrees of freedom (a heavy-tailed distribution), a mean of 0, and a scale of 2.5 for the standard deviations of random effects (e.g., the variability across state).Random effects account for unobserved variability between groups (states, in this case).A Student’s t distribution is chosen for its robustness and ability to accommodate extreme values, which can occur in hierarchical models with group-level variation. The scale of 2.5 reflects reasonable expectations about between-state variability in hospitalization probabilities, while the heavy tails of the t-distribution allow for the possibility of states with unusually high or low variability.In the context of the data, we know that states may differ in their baseline hospitalization rates due to factors like healthcare infrastructure, policies, or population health. This prior allows for such variability while avoiding overfitting to outliers.
+
+
+```{r}
+summary(mod)
+```
+Interpretation:
+For sd(intercept), we obtain an estimated value of 1.68 is the standard deviation of the state-level random intercepts, indicating substantial variability in hospitalization probabilities between states. The credible interval (1.17 to 2.35) reflects uncertainty about the standard deviation. Since this interval doesn’t include zero, the state-level variability is statistically significant.
+
+Out of all the effects for the age_group variable, the only one that shows statistical signfiicance is the linear effect, which has an estimaetd value 2.36 indicates a strong positive association between increasing age and hospitalization risk. The 95% CI (2.02, 2.71) shows statistical significance.
+
+Out of the all the variables, the strongest predictor of hospitalization risk appears to be age_group as older age groups significantly increases the odds of hospitalization.However, we need to consider any interaction terms before ensuring that this is to be trusted. 
+```{r}
+conditional_effects(mod, ndraws = 500)
+```
+
