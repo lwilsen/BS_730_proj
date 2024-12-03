@@ -93,6 +93,7 @@ mod_2 <- brm(
 
 ```{r}
 summary(mod_2)
+
 ```
 
 ### Explore conditional effects of model

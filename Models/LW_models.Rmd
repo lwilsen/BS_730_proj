@@ -330,6 +330,50 @@ bmheirarchical <- brm(
 
 ```{r}
 summary(bmheirarchical)
+library(kableExtra)
+
+# Data for Model
+
+hyperparameters <- data.frame(
+  Parameter = "sd(Intercept)",
+  Estimate = 1.70,
+  Est_Error = 0.25,
+  `l-95% CI` = 1.28,
+  `u-95% CI` = 2.23,
+  Rhat = 1.00,
+  Bulk_ESS = 986,
+  Tail_ESS = 1838
+)
+
+# Data for Regression Coefficients
+coefficients <- data.frame(
+  Parameter = c("Intercept", "age_group.L", "age_group.Q", "age_group.C",
+                "raceAsian", "raceBlack", "raceMultipleDOther", "raceWhite"),
+  Estimate = c(-2.02, 2.33, 0.17, -0.03, -0.37, -0.08, -0.68, -0.64),
+  Est_Error = c(0.35, 0.12, 0.10, 0.08, 0.36, 0.24, 0.43, 0.23),
+  `l-95% CI` = c(-2.71, 2.10, -0.02, -0.18, -1.08, -0.53, -1.54, -1.09),
+  `u-95% CI` = c(-1.35, 2.56, 0.36, 0.12, 0.32, 0.40, 0.11, -0.19),
+  Rhat = c(1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00),
+  Bulk_ESS = c(664, 4872, 5407, 5999, 3861, 2898, 4024, 2812),
+  Tail_ESS = c(1207, 3977, 3869, 3690, 3882, 3507, 3275, 3497)
+)
+
+# Create a single combined table
+combined_table <- bind_rows(
+  data.frame(Table = "Multilevel Hyperparameters", hyperparameters),
+  data.frame(Table = "Regression Coefficients", coefficients)
+)
+
+# Render the combined table
+final_table <- combined_table %>%
+  kable(format = "html", caption = "Combined Model Output") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE) %>%
+  pack_rows("Multilevel Hyperparameters", 1, 1) %>%
+  pack_rows("Regression Coefficients", 2, nrow(combined_table))
+
+# View in RStudio Viewer
+htmltools::browsable(final_table)
+
 ```
 
 ### Model checking
