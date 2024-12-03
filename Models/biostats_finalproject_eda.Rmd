@@ -278,6 +278,13 @@ Out of all the effects for the age_group variable, the only one that shows stati
 
 Out of the all the variables, the strongest predictor of hospitalization risk appears to be age_group as older age groups significantly increases the odds of hospitalization.However, we need to consider any interaction terms before ensuring that this is to be trusted. 
 ```{r}
-conditional_effects(mod, ndraws = 500)
+conditional_effects(mod, ndraws = 100)
 ```
 
+```{r}
+loo(mod)
+```
+All Paerto k estimates are considered good as k<0.7
+MCSE of elpd_loo is 0.1
+elpd_loo is a metric that evaluates the model's predictive accuracy.MCSE quantifies the variability in the estimation of elpd_loo aused by the Monte Carlo approximation. Smaller MCSE values indicate more precise estimates of elpd_loo, confiriming that elpd_loo is reliable and not overly influenced by the Monte Carlo sampling process.
+However, if we want to compare multiple models, we need to ensure that the difference in their elpd_loo values is greater than the combined MCSEs to confirm that the differences are meaningful.
