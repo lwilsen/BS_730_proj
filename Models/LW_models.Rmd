@@ -152,6 +152,7 @@ Pretty good mixing of the chains, Rhat = 1 for all params, min Bulk ESS = 1572, 
 
 ```{r}
 pp_check(basemod, type = "stat")
+conditional_effects(basemod)
 ```
 
 #### State by state post pred check

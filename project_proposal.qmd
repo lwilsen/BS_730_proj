@@ -6,6 +6,7 @@ editor: visual
 bibliography: references.bib
 ---
 
+
 # Summary
 
 Hospitals in the U.S. were overrun during the COVID pandemic due to limited resources and increased burden of illness. It is important for public health and healthcare organizations to prioritize care (using hospital beds for severe cases). An accurate prediction model may help identify those at high risk and need for hospitalization. This may improve resource efficiency.
@@ -74,8 +75,7 @@ Y_i = \begin{cases}
 $$ and:
 
 $$
-\DeclareMathOperator{\Bern}{Bern}
-Y_i | p_i \sim \Bern(p_i)
+Y_i | p_i \sim \text{Bern}(p_i)
 $$
 
 Let $\mathbf{X}_i = (X_{1,i}, X_{2,i}, X_{3,i}, X_{4,i})$ include all of the covariates for individual $i$, where:
@@ -90,8 +90,7 @@ Then the posterior distribution would resemble:
 Our logistic Bayesian model would then be:
 
 $$
-\DeclareMathOperator{\logit}{logit}
-\logit(p_i) = 
+\text{logit}(p_i) = 
 \log \left( \frac{P(Y_i = 1 | \mathbf{X}_i)}{1 - P(Y_i = 1 | \mathbf{X}_i)} \right) = \beta_0 + \beta_1 X_{1,i} + \beta_2 X_{2,i} + \beta_3 X_{3,i} + \beta_4 X_{4,i}
 $$
 
