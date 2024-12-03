@@ -158,7 +158,7 @@ conditional_effects(basemod)
 #### State by state post pred check
 ```{r}
 select_i_1 <- which(is.element(select_df$res_state,
-                               unique(select_df$res_state)[seq(1,5)]))
+                               unique(select_df$res_state)[seq(1,3)]))
 select_i_2 <- which(is.element(select_df$res_state,
                                unique(select_df$res_state)[seq(6,10)]))
 select_i_3 <- which(is.element(select_df$res_state,
