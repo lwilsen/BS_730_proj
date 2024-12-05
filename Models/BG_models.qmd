@@ -21,9 +21,11 @@ library(usmap)
 
 
 ```{r}
-df <- read.socrata(
-  url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=100000"
-)
+#df <- read.socrata(
+#  url = "https://data.cdc.gov/resource/n8mc-b4w4.json?$limit=100000"
+#)
+
+load("/Users/lukewilsen/Desktop/School/BS_730/BS_730_proj/730_data_150000_obs.RData")
 
 str(df)
 ```

@@ -330,6 +330,7 @@ bmheirarchical <- brm(
 
 ```{r}
 summary(bmheirarchical)
+
 library(kableExtra)
 
 # Data for Model
