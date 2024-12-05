@@ -78,18 +78,14 @@ Then the posterior distribution would resemble:
 
 Our logistic Bayesian model would then be:
 
-$$
-\text{logit}(\pi_i) = 
-\log \left( \frac{P(Y_i = 1 | \mathbf{X}_i)}{1 - P(Y_i = 1 | \mathbf{X}_i)} \right) = \beta_0 + \beta_1 X_{1,i} + \beta_2 X_{2,i} + \beta_3 X_{3,i} + \beta_4 X_{4,i}
-$$
+$ \text{logit}(\pi_i) = \log \left( \frac{P(Y_i = 1 | \mathbf{X}_i)}{1 - P(Y_i = 1 | \mathbf{X}_i)} \right) = \beta_0 + \beta_1 X_{1,i} + \beta_2 X_{2,i} + \beta_3 X_{3,i} + \beta_4 X_{4,i} $
 
 We will use normal priors for all covariates, and then re-visit the model to experiment with other generic priors (i.e. a student t(3, 0 ,1) preferred by Aki Vehtari (https://github.com/stan-dev/stan/wiki/Prior-Choice-Recommendations))
 
 The prior distribution would assume normal for all covariates:
 
-$$
-\beta_j \sim \mathcal{N}(0, \sigma^2) \quad \text{for} \quad j = 0, 1, 2, 3, 4
-$$
+
+$ \beta_j \sim \mathcal{N}(0, \sigma^2) \quad \text{for} \quad j = 0, 1, 2, 3, 4 $
 
 Note this initial model does not include state for hierarchical expression.
 
