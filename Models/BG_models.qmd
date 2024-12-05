@@ -278,14 +278,40 @@ These results are not perfect but better.
 ## Map Demonstration
 
 ```{r}
-
 # Using model 2 for this, but can modify later
+#below code creates 150000 draws for each state
+map_df_test <- df_recode |>
+  data_grid(res_state, age_group, race) |>
+  add_epred_draws(mod_2, allow_new_levels = TRUE)
+
 map_df <- df_recode |>
   data_grid(res_state, age_group, race) |>
-  add_epred_draws(mod_2, allow_new_levels = TRUE) |>
+  add_epred_draws(mod_2, allow_new_levels = TRUE)|>
   ungroup() |>
   reframe(pct = mean(.epred) * 100, .by = res_state)
 
+length(map_df_test$res_state[map_df_test$res_state == "AK"])
+
+for (state in unique(map_df_test$res_state)){
+  print(length(map_df_test$res_state[map_df_test$res_state == state]))
+}
+
+map_df_test %>% mutate(above_75 = ifelse(.epred > 0.75, 1, 0)) %>% 
+  group_by(res_state) %>% 
+  summarise(num_above = sum(above_75)) %>% 
+  arrange(desc(num_above))
+
+map_df_test %>% 
+  filter(res_state == "AR") %>% 
+  group_by(age_group, race) %>% 
+  summarise(mean_prob = mean(.epred))
+
+df_recode %>% 
+  drop_na() %>% 
+  filter(res_state == "MO")
+```
+
+```{r}
 # Change name for merging easily
 map_data <- us_map() |>
   rename(res_state = "abbr")

@@ -14,15 +14,42 @@ library(brms)
 library(modelr)
 library(bayesplot)
 library(rstanarm)
+library(tidybayes)
+library(mice)
+library(posterior)
+library(usmap)
 
 load("/Users/lukewilsen/Desktop/School/BS_730/BS_730_proj/730_data_150000_obs.RData")
 ```
 
 ```{r}
 df
+```
 
+
+```{r}
 dfna = df %>% 
   mutate(across(everything(), ~ na_if(.x, "Missing") %>% na_if("Unknown") %>% na_if("NA")))
+
+missing_counts <- dfna %>%
+  summarise(across(everything(), ~ sum(is.na(.)))) %>%
+  pivot_longer(everything(), names_to = "variable", values_to = "missing_count") %>%
+  arrange(desc(missing_count))
+
+missing_counts$variable <- factor(missing_counts$variable, 
+                                  levels = missing_counts$variable)
+
+# Plot the histogram
+ggplot(missing_counts, aes(x = variable, y = missing_count)) +
+  geom_bar(stat = "identity", fill = "blue", color = "black", alpha = 0.7) +
+  labs(
+    title = "Number of Missing Values per Variable",
+    x = "Variable",
+    y = "Number of Missing Values"
+  ) +
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) # Rotate x-axis labels by 45 degrees
+
 ```
 
 ```{r}
@@ -330,9 +357,6 @@ bmheirarchical <- brm(
 
 ```{r}
 summary(bmheirarchical)
-
-
-
 ```
 
 ### Model checking
@@ -361,7 +385,9 @@ dfna |>
     stat_pointinterval() +
     scale_y_discrete(limits = rev) +
     geom_point(data = obs_hosp, aes(x = prop, y = res_state), color = "green")+
-  labs(title = "Prediction interval for proportion hospitalized vs observed proportion")
+  labs(title = "Prediction interval for proportion hospitalized vs observed proportion",
+       x = "Expected Predicted Prob",
+       y = "State")
 ```
 
 ```{r}
@@ -386,6 +412,69 @@ ppc_group(select_i_8)
 ppc_group(select_i_9)
 ppc_group(select_i_10)
 ```
+
+### Map
+```{r}
+map_test = select_df %>% 
+  data_grid(res_state, age_group, race) |>
+  add_epred_draws(bmheirarchical, allow_new_levels = TRUE)|>
+  ungroup() |>
+  reframe(pct = mean(.epred) * 100, .by = res_state)
+
+map_diagnostic = select_df %>% 
+  data_grid(res_state, age_group, race) |>
+  add_epred_draws(bmheirarchical, allow_new_levels = TRUE) %>% 
+  group_by(res_state) %>% 
+  summarize(
+    mean_prob = mean(.epred),       # Mean probability of hospitalization
+    lower_ci = quantile(.epred, 0.025),  # Lower bound of 95% credible interval
+    upper_ci = quantile(.epred, 0.975)   # Upper bound of 95% credible interval
+  )
+
+obs_hosp_pct = select_df %>% 
+  reframe(prop = sum(hosp_yn == "Yes") / n(), .by = "res_state")
+
+select_df %>% 
+  data_grid(res_state, age_group, race) |>
+  add_epred_draws(bmheirarchical, allow_new_levels = TRUE) %>% 
+  ggplot(aes(x = .epred, y = res_state)) +
+    stat_pointinterval()+
+  geom_point(data = obs_hosp_pct, aes(x = prop, y = res_state), color = "red", size = 0.75)+
+  labs(title = "Prediction interval for proportion hospitalized vs observed proportion",
+       x = "Expected Predicted Prob",
+       y = "State")
+
+select_df %>% 
+  mutate(hosp = ifelse(hosp_yn == "Yes", 1, 0)) %>% 
+  group_by(res_state) %>% 
+  summarise(pct_hosp = sum(hosp) / n(), n = n()) %>% 
+  arrange(desc(pct_hosp))
+
+
+map_data <- us_map() |>
+  rename(res_state = "abbr")
+```
+
+```{r}
+merged_data = left_join(map_data, map_diagnostic, by = "res_state")
+
+ggplot() +
+  geom_sf(data = merged_data,
+          aes(fill = mean_prob),
+          color = "black",
+          linewidth = 0.2) +
+  theme_classic() + 
+  scale_fill_gradient(low = "lightblue", 
+                      high = "darkblue", 
+                      name = "Percent Hospitalized") +
+  labs(title = "Percent Hospitalized by State") +
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+$$
+\hat{\pi}_i = \frac{1}{1 + \exp(-(\hat{\beta}_{0,j[i]}+\hat{\eta}_{0,j[i]}+\hat{\beta}_{1,j[i]}X_{1,i}+\hat{\beta}_{2,j[i]}X_{2,i}))}
+$$
+
 
 
 ## encmod2 hierarchical
