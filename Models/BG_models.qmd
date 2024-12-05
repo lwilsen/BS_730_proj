@@ -97,6 +97,62 @@ mod_2 <- brm(
 summary(mod_2)
 
 ```
+```{r}
+library(kableExtra)
+
+# Data for Model
+
+library(dplyr)
+library(kableExtra)
+library(htmltools)
+
+# Data for Multilevel Hyperparameters
+hyperparameters <- data.frame(
+  Parameter = "sd(Intercept)",
+  Estimate = 1.65,
+  Est_Error = 0.22,
+  `l-95% CI` = 1.27,
+  `u-95% CI` = 2.13,
+  Rhat = 1.00,
+  Bulk_ESS = 908,
+  Tail_ESS = 1355
+)
+
+# Data for Regression Coefficients
+coefficients <- data.frame(
+  Parameter = c("Intercept", "age_group.L", "age_group.Q", "age_group.C",
+                "raceAsian", "raceBlack", "raceMultipleDOther", "raceWhite"),
+  Estimate = c(-2.12, 2.28, 0.20, -0.04, -0.30, 0.09, -0.67, -0.51),
+  Est_Error = c(0.31, 0.09, 0.08, 0.07, 0.32, 0.20, 0.37, 0.19),
+  `l-95% CI` = c(-2.73, 2.09, 0.04, -0.16, -0.92, -0.30, -1.42, -0.88),
+  `u-95% CI` = c(-1.48, 2.47, 0.35, 0.09, 0.31, 0.49, 0.04, -0.13),
+  Rhat = c(1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00),
+  Bulk_ESS = c(610, 4981, 5491, 6164, 3416, 2190, 3385, 2143),
+  Tail_ESS = c(1093, 3745, 3889, 3199, 3785, 3097, 3336, 2744)
+)
+
+# Create a single combined table
+combined_table <- bind_rows(
+  data.frame(Table = "Multilevel Hyperparameters", hyperparameters),
+  data.frame(Table = "Regression Coefficients", coefficients)
+)
+
+# Render the combined table
+final_table <- combined_table %>%
+  kable(format = "html", caption = "Combined Model Output") %>%
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"), full_width = FALSE) %>%
+  pack_rows("Multilevel Hyperparameters", 1, 1) %>%
+  pack_rows("Regression Coefficients", 2, nrow(combined_table))
+
+# View in RStudio Viewer
+htmltools::browsable(final_table)
+```
+
+```{r}
+posterior = as.array(mod_2)
+mcmc_intervals(posterior, pars = c("Intercept", "b_age_group.L", "b_age_group.Q", "b_age_group.C","b_raceAsian", "b_raceBlack", "b_raceMultipleDOther", "b_raceWhite"))
+```
+
 
 ### Explore conditional effects of model
 
