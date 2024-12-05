@@ -9,10 +9,14 @@ Initial Model Proposal
 -   
 
 -   $X_{1,i}$: Age Group
+
 -   $X_{2,i}$: Race
+
 -   $\eta_{0,j[i]}$: State level effect
 
+-   $j[i]$: refers to the individual specific state
+
 $$
-\text{logit}(p_i) = 
+\text{logit}(\pi_i) = 
 \log \left( \frac{P(Y_i = 1 | \mathbf{X}_i)}{1 - P(Y_i = 1 | \mathbf{X}_i)} \right) = \beta_{0,j[i]} +\eta_{0,j[i]} + \beta_{1,j[i]}X_{1,i}+\beta_{2,j[i]}X_{2,i}
 $$
