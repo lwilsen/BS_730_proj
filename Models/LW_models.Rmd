@@ -381,6 +381,12 @@ htmltools::browsable(final_table)
 ```{r}
 pp_check(bmheirarchical, type = "stat")
 conditional_effects(bmheirarchical)
+
+vars = c("Intercept","b_age_group18to49years","b_age_group50to64years","b_age_group65Pyears","b_raceAsian","b_raceBlack","b_raceWhite")
+
+for (var in vars3){
+  plot(bmheirarchical, variable = var)
+}
 ```
 
 ```{r}
