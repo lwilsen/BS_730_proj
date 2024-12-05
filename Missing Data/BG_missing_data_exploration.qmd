@@ -47,4 +47,15 @@ df_recode |>
     by = hosp_yn
   ) |>
   add_p()
+
+table <- df_recode |>
+  select(age_group, sex, race, ethnicity, exposure_yn, symptom_status, hosp_yn, underlying_conditions_yn) |>
+  tbl_summary(
+    by = hosp_yn
+  ) |>
+  add_p()
+
+# Convert to gt object
+gt_table <- as_gt(table)
+gtsave(gt_table, filename = "summary_table.pdf")  # PDF format
 ```
