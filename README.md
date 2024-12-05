@@ -61,7 +61,9 @@ We will consider a "Bayesian Workflow" [@gelman2020] with an iterative process, 
 
 Let $Y_i$ denote the binary outcome (hospitalization), where:
 
-$ Y_i = \begin{cases} 1 & \text{if the individual is hospitalized}, 0 & \text{otherwise}. \end{cases} $ and:
+$$
+Y_i =  1 & \text{if the individual is hospitalized}, 0 & \text{otherwise}.
+$$ and:
 
 $$
 Y_i | \pi_i \sim \text{Bern}(\pi_i)
